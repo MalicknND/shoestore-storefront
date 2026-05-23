@@ -1,8 +1,5 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import type { Product } from "@/types/product";
 import { Badge } from "@/components/ui/badge";
@@ -17,11 +14,7 @@ export function ProductCard({ product }: { product: Product }) {
   const isAvailable = product.status === "AVAILABLE" && product.stock > 0;
 
   return (
-    <motion.article
-      className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_20px_80px_rgba(15,15,15,0.06)]"
-      transition={{ duration: 0.25 }}
-      whileHover={{ y: -6 }}
-    >
+    <article className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_20px_80px_rgba(15,15,15,0.06)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_28px_90px_rgba(15,15,15,0.1)]">
       <Link
         className="relative block aspect-[4/5] overflow-hidden bg-neutral-100"
         href={`/products/${toProductSlug(product)}`}
@@ -65,6 +58,6 @@ export function ProductCard({ product }: { product: Product }) {
           </Link>
         </Button>
       </div>
-    </motion.article>
+    </article>
   );
 }

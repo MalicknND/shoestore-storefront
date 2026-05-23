@@ -1,9 +1,5 @@
-import {
-  API_BASE_URL,
-  fallbackCategories,
-  fallbackProducts,
-  fallbackProductsPage,
-} from "@/constants/store";
+import { cache } from "react";
+import { API_BASE_URL } from "@/constants/store";
 import type { Category, Product, ProductsPage } from "@/types/product";
 
 type ProductsQuery = {
@@ -12,18 +8,30 @@ type ProductsQuery = {
   sort?: string;
 };
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = process.env.SHOESTORE_API_TOKEN;
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    cache: "no-store",
     headers: {
       Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
-    next: { revalidate: 60 },
   });
 
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`);
+    throw new ApiError(`API request failed: ${response.status}`, response.status);
   }
 
   return response.json() as Promise<T>;
@@ -41,11 +49,7 @@ export async function getProducts(
     params.set("sort", query.sort);
   }
 
-  try {
-    return await apiFetch<ProductsPage>(`/api/products?${params.toString()}`);
-  } catch {
-    return fallbackProductsPage;
-  }
+  return apiFetch<ProductsPage>(`/api/products?${params.toString()}`);
 }
 
 export async function getFeaturedProducts(): Promise<Product[]> {
@@ -53,18 +57,20 @@ export async function getFeaturedProducts(): Promise<Product[]> {
   return page.content.slice(0, 6);
 }
 
-export async function getProductById(id: number): Promise<Product | null> {
-  try {
-    return await apiFetch<Product>(`/api/products/${id}`);
-  } catch {
-    return fallbackProducts.find((product) => product.id === id) ?? null;
-  }
-}
+export const getProductById = cache(
+  async (id: number): Promise<Product | null> => {
+    try {
+      return await apiFetch<Product>(`/api/products/${id}`);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        return null;
+      }
+
+      throw error;
+    }
+  },
+);
 
 export async function getCategories(): Promise<Category[]> {
-  try {
-    return await apiFetch<Category[]>("/api/categories");
-  } catch {
-    return fallbackCategories;
-  }
+  return apiFetch<Category[]>("/api/categories");
 }
